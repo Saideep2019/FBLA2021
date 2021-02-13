@@ -47,7 +47,7 @@ import javax.swing.JOptionPane;
 public class UserinformationView extends JFrame {
 
 	private JPanel contentPane; // These are all naming panels and textfields, that are private which means that
-	public static quizView2 currentView = null;
+	public static QuizView2 currentView = null;
 	private JTextField lastNameField;
 	private JTextField firstNameField;
 	public static String firstName;
@@ -183,11 +183,11 @@ public class UserinformationView extends JFrame {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-				quizView2 frame = null;
+				QuizView2 frame = null;
 			
 				dispose();//close the login view		
 				try {
-					frame = new quizView2();
+					frame = new QuizView2();
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();

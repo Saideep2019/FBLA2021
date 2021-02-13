@@ -32,8 +32,12 @@ import javax.swing.SwingConstants;
 import codingandProgramming.model.OutOfQuestionsException;
 import codingandProgramming.model.QuestionAndOptionsModel;
 import codingandProgramming.model.quizDAO;
-
-public class quizView2 {
+/**
+ * Main View class for Quiz App
+ * @author Saideep Ambari
+ *
+ */
+public class QuizView2 {
 
 	private JFrame frmQuizApp;
 	public static JLabel questionLabel = new JLabel("");
@@ -70,7 +74,7 @@ public class quizView2 {
 
 	public static void main(String[] args) throws SQLException {
 
-		JFrame frame = quizView2.displaySplashScreenInNewThread();
+		JFrame frame = QuizView2.displaySplashScreenInNewThread();
 		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -84,7 +88,7 @@ public class quizView2 {
 		
 					frame.dispose();
 					
-					quizView2 window = new quizView2();
+					QuizView2 window = new QuizView2();
 					nameOfStudent = JOptionPane.showInputDialog("Please enter your name to begin test");
 					window.frmQuizApp.setTitle("Quiz App - " + nameOfStudent);
 					window.model = window.dao.getRandomQuestionAndAnswers();
@@ -104,7 +108,7 @@ public class quizView2 {
 		
 		URL url = null;
 		try {
-			url = Class.forName("codingandProgramming.view.quizView2").getResource("image2.jpg");
+			url = Class.forName("codingandProgramming.view.QuizView2").getResource("image2.jpg");
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -139,7 +143,7 @@ public class quizView2 {
 	private final Action falseButtonAction = new SwingAction_1();
 	private boolean fillInBlankFlag;
 
-	public quizView2() throws SQLException {
+	public QuizView2() throws SQLException {
 
 		initialize();
 
