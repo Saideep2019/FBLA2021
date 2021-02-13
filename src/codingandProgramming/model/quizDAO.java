@@ -25,7 +25,7 @@ public class quizDAO {
 	String userid = "sa"; //"postgres";
 	String password = ""; //"admin";
 	public static int studentidtochange;
-	
+	public static int NUMBEROFQUESTIONS = 50;
 	private Connection connection = null;
 	private ArrayList<Integer> completedQuestionsList = new ArrayList<Integer>();
 	private ArrayList<Integer> completedQuestionTypes = new ArrayList<Integer>();
@@ -74,7 +74,7 @@ public class quizDAO {
 		int low = 1; //inclusive
 		int high = 50; //exclusive
 		
-		if (completedQuestionsList.size() >= 5) {
+		if (completedQuestionsList.size() >= NUMBEROFQUESTIONS) {
 			throw new OutOfQuestionsException();
 			
 		}

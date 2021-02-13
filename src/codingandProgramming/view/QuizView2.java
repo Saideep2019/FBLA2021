@@ -34,11 +34,16 @@ import codingandProgramming.model.QuestionAndOptionsModel;
 import codingandProgramming.model.quizDAO;
 /**
  * Main View class for Quiz App
+ * This class is responsible for the UI of the program. 
+ * Works with the DAO to retrieve data
+ * 
  * @author Saideep Ambari
  *
  */
 public class QuizView2 {
-
+	/**
+	 * Defining variables and fields for use later on in the class.
+	 */
 	private JFrame frmQuizApp;
 	public static JLabel questionLabel = new JLabel("");
 	public static JLabel scoreLabel = new JLabel("Score");
@@ -89,7 +94,7 @@ public class QuizView2 {
 					frame.dispose();
 					
 					QuizView2 window = new QuizView2();
-					nameOfStudent = JOptionPane.showInputDialog("Please enter your name to begin test");
+					nameOfStudent = JOptionPane.showInputDialog("Please enter your name to begin quiz");
 					window.frmQuizApp.setTitle("Quiz App - " + nameOfStudent);
 					window.model = window.dao.getRandomQuestionAndAnswers();
 					window.displayProperWidgets(window.model);
@@ -108,7 +113,7 @@ public class QuizView2 {
 		
 		URL url = null;
 		try {
-			url = Class.forName("codingandProgramming.view.QuizView2").getResource("image2.jpg");
+			url = Class.forName("codingandProgramming.view.QuizView2").getResource("realquizbk.jfif");
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -123,6 +128,28 @@ public class QuizView2 {
 		frame.setVisible(true);
 		return frame;
 	}
+	
+	private static JFrame  displayAnotherSplashInNewThread()  {
+		JFrame frame = new JFrame();
+		
+		URL url = null;
+		try {
+			url = Class.forName("codingandProgramming.view.QuizView2").getResource("correctanswergif.gif");
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		ImageIcon ic = new ImageIcon(url);
+		JLabel splashLabel = new JLabel("");
+		splashLabel.setIcon(ic);
+		frame.getContentPane().add(splashLabel);
+		frame.setTitle("Quiz App V1.1");
+		frame.pack(); // automatically size the window to fit its components
+		frame.setLocationRelativeTo(null); // center this window on the screen
+		frame.setVisible(true);
+		return frame;
+	}
+	
 	
 	
 	
@@ -151,6 +178,7 @@ public class QuizView2 {
 
 	/**
 	 * Initialize the contents of the frame.
+	 * Defines things such as the frame, buttons, textfields, and other UI components.
 	 */
 	private void initialize() {
 
@@ -160,21 +188,25 @@ public class QuizView2 {
 		frmQuizApp.setBounds(100, 100, 450, 300);
 		frmQuizApp.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmQuizApp.getContentPane().setLayout(null);
+		btnOne.setFont(new Font("Tahoma", Font.PLAIN, 9));
 		btnOne.setAction(actionOne);
 
-		btnOne.setBounds(21, 78, 148, 23);
+		btnOne.setBounds(10, 78, 187, 23);
 		frmQuizApp.getContentPane().add(btnOne);
+		btnThree.setFont(new Font("Tahoma", Font.PLAIN, 9));
 		btnThree.setAction(actionThree);
 
-		btnThree.setBounds(224, 82, 179, 23);
+		btnThree.setBounds(224, 82, 200, 23);
 		frmQuizApp.getContentPane().add(btnThree);
+		btnTwo.setFont(new Font("Tahoma", Font.PLAIN, 9));
 		btnTwo.setAction(actionTwo);
 
-		btnTwo.setBounds(21, 142, 148, 23);
+		btnTwo.setBounds(10, 142, 187, 23);
 		frmQuizApp.getContentPane().add(btnTwo);
+		btnFour.setFont(new Font("Tahoma", Font.PLAIN, 9));
 		btnFour.setAction(actionFour);
 
-		btnFour.setBounds(224, 142, 179, 23);
+		btnFour.setBounds(224, 142, 200, 23);
 		frmQuizApp.getContentPane().add(btnFour);
 		questionLabel.setBounds(10, 12, 414, 23);
 		frmQuizApp.getContentPane().add(questionLabel);
@@ -182,7 +214,7 @@ public class QuizView2 {
 		frmQuizApp.getContentPane().add(scoreLabel);
 		frmQuizApp.getContentPane().add(realScoreLabel);
 		realScoreLabel.setBounds(69, 209, 46, 14);
-
+		//frame = displayAnotherSplashInNewThread
 		frmQuizApp.getContentPane().add(realScoreLabel);
 
 		JButton nextQuestionbtn = new JButton("New button");
@@ -218,13 +250,13 @@ public class QuizView2 {
 		fillIntheblankLabelOne.setBounds(21, 55, 163, 16);
 		frmQuizApp.getContentPane().add(fillIntheblankLabelOne);
 
-		fillIntheblankfield.setBounds(176, 51, 86, 20);
+		fillIntheblankfield.setBounds(166, 51, 96, 20);
 		frmQuizApp.getContentPane().add(fillIntheblankfield);
 		fillIntheblankfield.setColumns(10);
 		fillintheblanklabelTwo.setForeground(Color.BLUE);
 		fillintheblanklabelTwo.setFont(new Font("Tahoma", Font.PLAIN, 10));
 
-		fillintheblanklabelTwo.setBounds(261, 54, 173, 14);
+		fillintheblanklabelTwo.setBounds(274, 56, 173, 14);
 		frmQuizApp.getContentPane().add(fillintheblanklabelTwo);
 		comboBox.setVisible(false);
 
@@ -303,19 +335,7 @@ public class QuizView2 {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-//			if(comboBox.getSelectedIndex() == -1) {
-//				JOptionPane.showMessageDialog(null, "An option was not selected");
-//			}
-//			if(btnOne.isSelected() == false && btnTwo.isSelected() == false && btnThree.isSelected() == false && btnFour.isSelected() == false) {
-//				JOptionPane.showMessageDialog(null, "An option was not selected");
-//			}
-//			
-//			if(trueRadioButton.isSelected() == false && falseRadioButton.isSelected()) {
-//				JOptionPane.showMessageDialog(null, "An option was not selected");
-//			}
-//			if(fillIntheblankfield  == null) {
-//				JOptionPane.showMessageDialog(null, "An option was not selected");
-//			}
+
 
 			if (fillInBlankFlag) {
 				selectedAnswer = fillIntheblankfield.getText();
@@ -330,14 +350,20 @@ public class QuizView2 {
 			}
 
 			if (answer) {
+				URL url = null;
 				isCorrect = true;
 				JWindow splash = new JWindow();
-
-				java.net.URL imgURL = JWindow.class.getResource("/correctanswergif.gif");
+				try {
+					url = Class.forName("codingandProgramming.view.QuizView2").getResource("flower.gif");
+				} catch (ClassNotFoundException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
+				
 		
-				if (imgURL != null) {
+				if (url != null) {
 
-					ImageIcon icon = new ImageIcon(imgURL);
+					ImageIcon icon = new ImageIcon(url);
 					splash.getContentPane().add(new JLabel("", icon, SwingConstants.CENTER));// centering the splash
 																								// screen
 					splash.setBounds(550, 160, 400, 400);// setting the size and coordinates of the splash screen.
@@ -362,13 +388,13 @@ public class QuizView2 {
 			}
 
 			if (selectedAnswer == "") {
-				selectedAnswer = "Question Not Attempted";
+				selectedAnswer = "";
 
 			}
 
 			else {
 				isCorrect = false;
-
+				
 				JOptionPane.showMessageDialog(null, "You got the question incorrect");
 
 				JWindow splashOne = new JWindow();
@@ -399,7 +425,7 @@ public class QuizView2 {
 			} catch (OutOfQuestionsException e1) {
 				// System.out.println("Ran out of questions");
 				JOptionPane.showMessageDialog(null,
-						"Congratulations!, you have completed the test, press ok to view report");
+						"Congratulations!, you have completed the quiz, press ok to view report");
 				reportView();
 			} // get model for next question
 
@@ -440,7 +466,12 @@ public class QuizView2 {
 		}
 
 	}
-
+/**
+ * The following methods are used to display the correct type of questions.
+ * For example the showfillintheblanks method makes all other types of questions invisible but makes the fill in the blanks 
+ * question visible. The same concept is repeated for all other types of questions.
+ * @param model
+ */
 	public void displayProperWidgets(QuestionAndOptionsModel model) {
 
 		fillIntheblankLabelOne.setVisible(false);
@@ -568,8 +599,13 @@ public class QuizView2 {
 
 		comboBox.setSelectedItem(null);
 	}
-
+/**
+ * This method is responsible for showing the radiobuttons.
+ * It makes all other types of questions invisible, and only shows the radiobuttons.
+ * @param model
+ */
 	public void showRadioButton(QuestionAndOptionsModel model) {
+		
 		btnOne.setVisible(false);
 		btnTwo.setVisible(false);
 		btnThree.setVisible(false);
@@ -597,11 +633,11 @@ public class QuizView2 {
 	private class SwingAction extends AbstractAction {
 		public SwingAction() {
 			putValue(NAME, "True");
-			putValue(SHORT_DESCRIPTION, "Some short description");
+			putValue(SHORT_DESCRIPTION, "Press to choose true");
 		}
 
 		public void actionPerformed(ActionEvent e) {
-			didtheycompletethequestion = true;
+			didtheycompletethequestion = true;//sets variable to true if they selected an answer
 
 			if (trueRadioButton.isSelected()) {
 				selectedAnswer = "true";
@@ -613,11 +649,11 @@ public class QuizView2 {
 	private class SwingAction_1 extends AbstractAction {
 		public SwingAction_1() {
 			putValue(NAME, "False");
-			putValue(SHORT_DESCRIPTION, "Some short description");
+			putValue(SHORT_DESCRIPTION, "Press to choose false");
 		}
 
 		public void actionPerformed(ActionEvent e) {
-			didtheycompletethequestion = true;
+			didtheycompletethequestion = true;//sets variable to true if they selected an answer
 
 			if (falseRadioButton.isSelected()) {
 
