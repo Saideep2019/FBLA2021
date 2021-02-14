@@ -78,6 +78,11 @@ public class QuizView2 {
 	public boolean isCorrect;
 	public boolean isAttempted;
 	public static String nameOfStudent = "";
+	
+	//
+	// REPORT ERRORS
+	//IT WONT GET ANSWER YOU PUT ALL THE TIME
+	// IS ANSWER CORRECT OR NOT IS NOT CORRECT.
 
 	public static void main(String[] args) throws SQLException {
 
@@ -196,22 +201,22 @@ public class QuizView2 {
 
 		frmQuizApp.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmQuizApp.getContentPane().setLayout(null);
-		btnOne.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		btnOne.setFont(new Font("Tahoma", Font.PLAIN, 10));
 		btnOne.setAction(actionOne);
 
 		btnOne.setBounds(10, 78, 187, 23);
 		frmQuizApp.getContentPane().add(btnOne);
-		btnThree.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		btnThree.setFont(new Font("Tahoma", Font.PLAIN, 10));
 		btnThree.setAction(actionThree);
 
 		btnThree.setBounds(224, 82, 200, 23);
 		frmQuizApp.getContentPane().add(btnThree);
-		btnTwo.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		btnTwo.setFont(new Font("Tahoma", Font.PLAIN, 10));
 		btnTwo.setAction(actionTwo);
 
 		btnTwo.setBounds(10, 142, 187, 23);
 		frmQuizApp.getContentPane().add(btnTwo);
-		btnFour.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		btnFour.setFont(new Font("Tahoma", Font.PLAIN, 10));
 		btnFour.setAction(actionFour);
 
 		btnFour.setBounds(224, 142, 200, 23);
@@ -329,7 +334,7 @@ public class QuizView2 {
 
 			reportArr[currentQuestionIndex][0] = model.getQuestion();
 			reportArr[currentQuestionIndex][1] = model.getRightAnswer();
-			// System.out.println(selectedAnswer);
+			
 			reportArr[currentQuestionIndex][2] = selectedAnswer;
 			reportArr[currentQuestionIndex][3] = isCorrect + "";
 			reportArr[4][4] = percentCorrect + "";
@@ -384,7 +389,7 @@ public class QuizView2 {
 
 				}
 
-				JOptionPane.showMessageDialog(null, "You got the question correct");
+				JOptionPane.showMessageDialog(null, "Right answer !");
 				score++;
 
 				scoreLabel.setText("Score: " + score);
@@ -401,7 +406,7 @@ public class QuizView2 {
 			else {
 				isCorrect = false;
 
-				JOptionPane.showMessageDialog(null, "You got the question incorrect");
+				JOptionPane.showMessageDialog(null, "Wrong answer !");
 
 				JWindow splashOne = new JWindow();
 				java.net.URL imgURL = JWindow.class.getResource("/wronganswergif.gif");
@@ -438,13 +443,16 @@ public class QuizView2 {
 			displayProperWidgets(model);
 
 		}
-
+		/**
+		 * Generates the report by using a 2 dimensional array, that populates the fields with information calculated based on results of quiz
+		 * 
+		 */
 		private void reportView() {
 
 			currentQuestionIndex = currentQuestionIndex + 3;
 			reportArr[currentQuestionIndex++][0] = "Student: " + nameOfStudent;
 			reportArr[currentQuestionIndex++][0] = "   Questions attempted: " + 5;
-			reportArr[currentQuestionIndex++][0] = "   Answered correctly: " + score;
+			reportArr[currentQuestionIndex = currentQuestionIndex++][0] = "   Answered correctly: " + score;
 
 			reportArr[currentQuestionIndex++][0] = "   Percentage correct: " + (score * 100 / 5);
 
@@ -452,6 +460,13 @@ public class QuizView2 {
 			JTable reportTable = new JTable(reportArr, tableColumns);
 			reportFrame.setSize(600, 500);
 			reportFrame.setTitle("Quiz App - " + nameOfStudent);
+			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
+			// Calculates the position where the CenteredJFrame
+			// should be paced on the screen.
+			int x = (screenSize.width - reportFrame.getWidth()) / 2;
+			int y = (screenSize.height - reportFrame.getHeight()) / 2;
+			reportFrame.setLocation(x, y);
 			// dgdfgdfg
 			// tdgdfg
 			// gfthgfhg
