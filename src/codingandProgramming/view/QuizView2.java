@@ -1,8 +1,10 @@
 package codingandProgramming.view;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.URL;
@@ -32,10 +34,10 @@ import javax.swing.SwingConstants;
 import codingandProgramming.model.OutOfQuestionsException;
 import codingandProgramming.model.QuestionAndOptionsModel;
 import codingandProgramming.model.quizDAO;
+
 /**
- * Main View class for Quiz App
- * This class is responsible for the UI of the program. 
- * Works with the DAO to retrieve data
+ * Main View class for Quiz App This class is responsible for the UI of the
+ * program. Works with the DAO to retrieve data
  * 
  * @author Saideep Ambari
  *
@@ -80,24 +82,25 @@ public class QuizView2 {
 	public static void main(String[] args) throws SQLException {
 
 		JFrame frame = QuizView2.displaySplashScreenInNewThread();
-		
+
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					
+
 					try {
 						Thread.sleep(5000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-		
+
 					frame.dispose();
-					
+
 					QuizView2 window = new QuizView2();
 					nameOfStudent = JOptionPane.showInputDialog("Please enter your name to begin quiz");
 					window.frmQuizApp.setTitle("Quiz App - " + nameOfStudent);
 					window.model = window.dao.getRandomQuestionAndAnswers();
 					window.displayProperWidgets(window.model);
+
 					window.frmQuizApp.setVisible(true);
 					window.initialize2dArray();
 				} catch (Exception e) {
@@ -107,10 +110,9 @@ public class QuizView2 {
 		});
 	}
 
-	
-	private static JFrame  displaySplashScreenInNewThread()  {
+	private static JFrame displaySplashScreenInNewThread() {
 		JFrame frame = new JFrame();
-		
+
 		URL url = null;
 		try {
 			url = Class.forName("codingandProgramming.view.QuizView2").getResource("realquizbk.jfif");
@@ -128,10 +130,10 @@ public class QuizView2 {
 		frame.setVisible(true);
 		return frame;
 	}
-	
-	private static JFrame  displayAnotherSplashInNewThread()  {
+
+	private static JFrame displayAnotherSplashInNewThread() {
 		JFrame frame = new JFrame();
-		
+
 		URL url = null;
 		try {
 			url = Class.forName("codingandProgramming.view.QuizView2").getResource("correctanswergif.gif");
@@ -149,12 +151,7 @@ public class QuizView2 {
 		frame.setVisible(true);
 		return frame;
 	}
-	
-	
-	
-	
-	
-	
+
 	protected void initialize2dArray() {
 		// ""
 
@@ -177,15 +174,26 @@ public class QuizView2 {
 	}
 
 	/**
-	 * Initialize the contents of the frame.
-	 * Defines things such as the frame, buttons, textfields, and other UI components.
+	 * Initialize the contents of the frame. Defines things such as the frame,
+	 * buttons, textfields, and other UI components.
 	 */
 	private void initialize() {
 
 		frmQuizApp = new JFrame();
+		// frmQuizApp.setLocationRelativeTo(null);
+
 		frmQuizApp.getContentPane().setForeground(Color.ORANGE);
 		// frmQuizApp.setTitle("Quiz App " );
 		frmQuizApp.setBounds(100, 100, 450, 300);
+
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
+		// Calculates the position where the CenteredJFrame
+		// should be paced on the screen.
+		int x = (screenSize.width - frmQuizApp.getWidth()) / 2;
+		int y = (screenSize.height - frmQuizApp.getHeight()) / 2;
+		frmQuizApp.setLocation(x, y);
+
 		frmQuizApp.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmQuizApp.getContentPane().setLayout(null);
 		btnOne.setFont(new Font("Tahoma", Font.PLAIN, 9));
@@ -214,7 +222,7 @@ public class QuizView2 {
 		frmQuizApp.getContentPane().add(scoreLabel);
 		frmQuizApp.getContentPane().add(realScoreLabel);
 		realScoreLabel.setBounds(69, 209, 46, 14);
-		//frame = displayAnotherSplashInNewThread
+		// frame = displayAnotherSplashInNewThread
 		frmQuizApp.getContentPane().add(realScoreLabel);
 
 		JButton nextQuestionbtn = new JButton("New button");
@@ -321,7 +329,7 @@ public class QuizView2 {
 
 			reportArr[currentQuestionIndex][0] = model.getQuestion();
 			reportArr[currentQuestionIndex][1] = model.getRightAnswer();
-			//System.out.println(selectedAnswer);
+			// System.out.println(selectedAnswer);
 			reportArr[currentQuestionIndex][2] = selectedAnswer;
 			reportArr[currentQuestionIndex][3] = isCorrect + "";
 			reportArr[4][4] = percentCorrect + "";
@@ -335,7 +343,6 @@ public class QuizView2 {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-
 
 			if (fillInBlankFlag) {
 				selectedAnswer = fillIntheblankfield.getText();
@@ -359,8 +366,7 @@ public class QuizView2 {
 					// TODO Auto-generated catch block
 					e2.printStackTrace();
 				}
-				
-		
+
 				if (url != null) {
 
 					ImageIcon icon = new ImageIcon(url);
@@ -394,7 +400,7 @@ public class QuizView2 {
 
 			else {
 				isCorrect = false;
-				
+
 				JOptionPane.showMessageDialog(null, "You got the question incorrect");
 
 				JWindow splashOne = new JWindow();
@@ -466,12 +472,15 @@ public class QuizView2 {
 		}
 
 	}
-/**
- * The following methods are used to display the correct type of questions.
- * For example the showfillintheblanks method makes all other types of questions invisible but makes the fill in the blanks 
- * question visible. The same concept is repeated for all other types of questions.
- * @param model
- */
+
+	/**
+	 * The following methods are used to display the correct type of questions. For
+	 * example the showfillintheblanks method makes all other types of questions
+	 * invisible but makes the fill in the blanks question visible. The same concept
+	 * is repeated for all other types of questions.
+	 * 
+	 * @param model
+	 */
 	public void displayProperWidgets(QuestionAndOptionsModel model) {
 
 		fillIntheblankLabelOne.setVisible(false);
@@ -599,13 +608,15 @@ public class QuizView2 {
 
 		comboBox.setSelectedItem(null);
 	}
-/**
- * This method is responsible for showing the radiobuttons.
- * It makes all other types of questions invisible, and only shows the radiobuttons.
- * @param model
- */
+
+	/**
+	 * This method is responsible for showing the radiobuttons. It makes all other
+	 * types of questions invisible, and only shows the radiobuttons.
+	 * 
+	 * @param model
+	 */
 	public void showRadioButton(QuestionAndOptionsModel model) {
-		
+
 		btnOne.setVisible(false);
 		btnTwo.setVisible(false);
 		btnThree.setVisible(false);
@@ -637,7 +648,7 @@ public class QuizView2 {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-			didtheycompletethequestion = true;//sets variable to true if they selected an answer
+			didtheycompletethequestion = true;// sets variable to true if they selected an answer
 
 			if (trueRadioButton.isSelected()) {
 				selectedAnswer = "true";
@@ -653,7 +664,7 @@ public class QuizView2 {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-			didtheycompletethequestion = true;//sets variable to true if they selected an answer
+			didtheycompletethequestion = true;// sets variable to true if they selected an answer
 
 			if (falseRadioButton.isSelected()) {
 

@@ -20,12 +20,14 @@ public class quizDAO {
 	   
 	private Server dbserver = null;
 	
-	private static final String host = "jdbc:h2:tcp://localhost/./quiz;AUTO_SERVER=TRUE";// establishing the host connection to the url
+	//private static final String host = "jdbc:h2:tcp://localhost/./quizdb;AUTO_SERVER=TRUE";// establishing the host connection to the url
+	
+	private static final String host = "jdbc:h2:file:./quizdb";
 	public static final String driver = "org.h2.Driver";
 	String userid = "sa"; //"postgres";
 	String password = ""; //"admin";
 	public static int studentidtochange;
-	public static int NUMBEROFQUESTIONS = 50;
+	public static int NUMBEROFQUESTIONS = 5;
 	private Connection connection = null;
 	private ArrayList<Integer> completedQuestionsList = new ArrayList<Integer>();
 	private ArrayList<Integer> completedQuestionTypes = new ArrayList<Integer>();
@@ -176,6 +178,7 @@ public class quizDAO {
 	
 		
 		quizDAO dao = new quizDAO();
+		dao.getConnection();
 		
 
 		//	dao.insertId();
