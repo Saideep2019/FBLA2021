@@ -42,7 +42,7 @@ import codingandProgramming.model.quizDAO;
  * @author Saideep Ambari
  *
  */
-public class QuizView2 {
+public class quizView2 {
 	/**
 	 * Defining variables and fields for use later on in the class.
 	 */
@@ -83,7 +83,7 @@ public class QuizView2 {
 
 	public static void main(String[] args) throws SQLException {
 
-		JFrame frame = QuizView2.displaySplashScreenInNewThread();
+		JFrame frame = quizView2.displaySplashScreenInNewThread();
 
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -97,7 +97,7 @@ public class QuizView2 {
 
 					frame.dispose();
 
-					QuizView2 window = new QuizView2();
+					quizView2 window = new quizView2();
 					nameOfStudent = JOptionPane.showInputDialog("Please enter your name to begin quiz");
 					window.frmQuizApp.setTitle("Quiz App - " + nameOfStudent);
 					window.model = window.dao.getRandomQuestionAndAnswers();
@@ -169,7 +169,7 @@ public class QuizView2 {
 	private final Action falseButtonAction = new SwingAction_1();
 	private boolean fillInBlankFlag;
 
-	public QuizView2() throws SQLException {
+	public quizView2() throws SQLException {
 
 		initialize();
 
