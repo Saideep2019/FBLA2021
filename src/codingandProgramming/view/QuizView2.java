@@ -79,10 +79,7 @@ public class QuizView2 {
 	public boolean isAttempted;
 	public static String nameOfStudent = "";
 	
-	//
-	// REPORT ERRORS
-	//IT WONT GET ANSWER YOU PUT ALL THE TIME
-	// IS ANSWER CORRECT OR NOT IS NOT CORRECT.
+
 
 	public static void main(String[] args) throws SQLException {
 
@@ -193,7 +190,7 @@ public class QuizView2 {
 
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
-		// Calculates the position where the CenteredJFrame
+		// Calculates the position where the frmQuizApp
 		// should be paced on the screen.
 		int x = (screenSize.width - frmQuizApp.getWidth()) / 2;
 		int y = (screenSize.height - frmQuizApp.getHeight()) / 2;
@@ -236,7 +233,7 @@ public class QuizView2 {
 		frmQuizApp.getContentPane().add(nextQuestionbtn);
 		comboBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				selectedAnswer = (String) comboBox.getSelectedItem();
+				selectedAnswer = comboBox.getSelectedItem() + "";
 			}
 		});
 
@@ -334,7 +331,6 @@ public class QuizView2 {
 
 			reportArr[currentQuestionIndex][0] = model.getQuestion();
 			reportArr[currentQuestionIndex][1] = model.getRightAnswer();
-			
 			reportArr[currentQuestionIndex][2] = selectedAnswer;
 			reportArr[currentQuestionIndex][3] = isCorrect + "";
 			reportArr[4][4] = percentCorrect + "";
@@ -348,7 +344,7 @@ public class QuizView2 {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-
+			// if the fillInBlankFlag is true, then the selectedAnswer will be set to whatever was entered in the textField
 			if (fillInBlankFlag) {
 				selectedAnswer = fillIntheblankfield.getText();
 				fillInBlankFlag = false;
@@ -362,33 +358,9 @@ public class QuizView2 {
 			}
 
 			if (answer) {
-				URL url = null;
+
+				
 				isCorrect = true;
-				JWindow splash = new JWindow();
-				try {
-					url = Class.forName("codingandProgramming.view.QuizView2").getResource("flower.gif");
-				} catch (ClassNotFoundException e2) {
-					// TODO Auto-generated catch block
-					e2.printStackTrace();
-				}
-
-				if (url != null) {
-
-					ImageIcon icon = new ImageIcon(url);
-					splash.getContentPane().add(new JLabel("", icon, SwingConstants.CENTER));// centering the splash
-																								// screen
-					splash.setBounds(550, 160, 400, 400);// setting the size and coordinates of the splash screen.
-					splash.setVisible(true);
-					try {
-						Thread.sleep(2000);// duration of the splash screen
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-					splash.setVisible(false);// setting the visibility of the splash screen to false, after 3000
-												// milliseconds.
-
-				}
-
 				JOptionPane.showMessageDialog(null, "Right answer !");
 				score++;
 
@@ -398,34 +370,17 @@ public class QuizView2 {
 
 			}
 
-			if (selectedAnswer == "") {
-				selectedAnswer = "";
 
-			}
 
 			else {
 				isCorrect = false;
 
 				JOptionPane.showMessageDialog(null, "Wrong answer !");
 
-				JWindow splashOne = new JWindow();
-				java.net.URL imgURL = JWindow.class.getResource("/wronganswergif.gif");
+		
 
-				if (imgURL != null) {
-					ImageIcon icon = new ImageIcon(imgURL);
-					splashOne.getContentPane().add(new JLabel("", icon, SwingConstants.CENTER));// centering the splash
-																								// screen
-					splashOne.setBounds(550, 160, 400, 400);// setting the size and coordinates of the splash screen.
-					splashOne.setVisible(true);
-					try {
-						Thread.sleep(2000);// duration of the splash screen
-					} catch (InterruptedException e2) {
-						e2.printStackTrace();
-					}
-					splashOne.setVisible(false);// setting the visibility of the splash screen to false, after 3000
-												// milliseconds.
+				selectedAnswer = "";
 
-				}
 
 			}
 
@@ -467,9 +422,6 @@ public class QuizView2 {
 			int x = (screenSize.width - reportFrame.getWidth()) / 2;
 			int y = (screenSize.height - reportFrame.getHeight()) / 2;
 			reportFrame.setLocation(x, y);
-			// dgdfgdfg
-			// tdgdfg
-			// gfthgfhg
 			reportFrame.getContentPane().add(new JScrollPane(reportTable));
 			reportFrame.setVisible(true);
 			reportTable.setVisible(true);
@@ -645,13 +597,14 @@ public class QuizView2 {
 		fillIntheblankLabelOne.setVisible(false);
 		fillintheblanklabelTwo.setVisible(false);
 
+		trueRadioButton.setSelected(false);
+		falseRadioButton.setSelected(false);
 		trueRadioButton.setVisible(true);
 		falseRadioButton.setVisible(true);
 		trueRadioButton.setText("True");
 		falseRadioButton.setText("False");
 
-		trueRadioButton.setSelected(false);
-		falseRadioButton.setSelected(false);
+	
 		buttonGroup.setSelected(null, false);
 
 	}
