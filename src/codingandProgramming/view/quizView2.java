@@ -117,7 +117,7 @@ public class quizView2 {
 
 		URL url = null;
 		try {
-			url = Class.forName("codingandProgramming.view.QuizView2").getResource("realquizbk.jfif");
+			url = Class.forName("codingandProgramming.view.quizView2").getResource("realquizbk.jfif");
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -133,26 +133,6 @@ public class quizView2 {
 		return frame;
 	}
 
-	private static JFrame displayAnotherSplashInNewThread() {
-		JFrame frame = new JFrame();
-
-		URL url = null;
-		try {
-			url = Class.forName("codingandProgramming.view.QuizView2").getResource("correctanswergif.gif");
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		ImageIcon ic = new ImageIcon(url);
-		JLabel splashLabel = new JLabel("");
-		splashLabel.setIcon(ic);
-		frame.getContentPane().add(splashLabel);
-		frame.setTitle("Quiz App V1.1");
-		frame.pack(); // automatically size the window to fit its components
-		frame.setLocationRelativeTo(null); // center this window on the screen
-		frame.setVisible(true);
-		return frame;
-	}
 
 	protected void initialize2dArray() {
 		// ""
