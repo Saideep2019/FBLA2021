@@ -311,8 +311,8 @@ public class quizView2 {
 
 			reportArr[currentQuestionIndex][0] = model.getQuestion();
 			reportArr[currentQuestionIndex][1] = model.getRightAnswer();
-			reportArr[currentQuestionIndex][2] = selectedAnswer;
-			reportArr[currentQuestionIndex][3] = isCorrect + "";
+			//reportArr[currentQuestionIndex][2] = selectedAnswer;
+			reportArr[currentQuestionIndex][2] = isCorrect + "";
 			reportArr[4][4] = percentCorrect + "";
 
 			if (model.getDisplayType() == 4) {
