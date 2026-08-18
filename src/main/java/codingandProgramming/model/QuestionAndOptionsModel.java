@@ -1,88 +1,52 @@
 package codingandProgramming.model;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-public class QuestionAndOptionsModel {
-	private String question;
-	private List<String> options = new ArrayList<String>();
-	private int displayType = 0;
-	private int questionId = 0;
-	public String questionParttwo;
+/**
+ * Legacy Swing adapter for the extracted {@link Question} domain object.
+ */
+public final class QuestionAndOptionsModel {
 
-	
-	
-	
-	
-	
+	private final Question question;
+
+	public QuestionAndOptionsModel(Question question) {
+		this.question = Objects.requireNonNull(question, "question");
+	}
+
 	public String getQuestionParttwo() {
-		return questionParttwo;
+		if (question.getDisplayType() == Question.DisplayType.FILL_IN_THE_BLANK) {
+			return question.getSecondBlankFragment();
+		}
+		return null;
 	}
-
-	public void setQuestionParttwo(String questionParttwo) {
-		this.questionParttwo = questionParttwo;
-	}
-
-
 
 	public int getQuestionId() {
-		return questionId;
+		return question.getId();
 	}
-
-	public void setQuestionId(int questionId) {
-		this.questionId = questionId;
-	}
-
-	private String rightAnswer = "";
-
-
-
 
 	public String getRightAnswer() {
-		return rightAnswer;
-	}
-
-	public void setRightAnswer(String rightAnswer) {
-		this.rightAnswer = rightAnswer;
+		return question.getCorrectAnswer();
 	}
 
 	public int getDisplayType() {
-		return displayType;
-	}
-
-	public void setDisplayType(int displayType) {
-		this.displayType = displayType;
+		return question.getDisplayType().getLegacyValue();
 	}
 
 	public List<String> getOptions() {
-		return options;
+		return question.getAnswerOptions();
 	}
-
-	public void setOptions(List<String> options) {
-		this.options = options;
-	}
-
-	public void addOption(String option) {
-		options.add(option);
-
-	}
-
-	
 
 	public String getQuestion() {
-		return question;
+		return question.getText();
 	}
 
-	public void setQuestion(String question) {
-		this.question = question;
+	public Question toQuestion() {
+		return question;
 	}
 
 	@Override
 	public String toString() {
-		return question + " ---" + options.toString();
-
+		return getQuestion() + " ---" + getOptions();
 	}
-
-
-
 }

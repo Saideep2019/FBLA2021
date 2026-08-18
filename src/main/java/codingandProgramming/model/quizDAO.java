@@ -1,7 +1,5 @@
 /**
- * This class is responsible for establishing the connecting between JAVA and MYSQL.
- * THis is used to retrieve the information from the database, which will then be used to populate the fields and information in the GUI.
- * This follows the Single Responsibility Principle to prevent bugs in the code and keep things more organized.
+ * Loads quiz content from the preserved H2 database for the Swing application.
  */
 package codingandProgramming.model;
 
@@ -11,157 +9,92 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Random;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.h2.tools.Server;
 
-public class quizDAO {
-
-	private Server dbserver = null;
-
-	// private static final String host =
-	// "jdbc:h2:tcp://localhost/./quizdb;AUTO_SERVER=TRUE";// establishing the host
-	// connection to the url
+public class quizDAO implements QuestionRepository {
 
 	private static final String host = "jdbc:h2:file:./quizdb";
 	public static final String driver = "org.h2.Driver";
-	String userid = "sa"; // "postgres";
-	String password = ""; // "admin";
+	private static final int LEGACY_FIRST_QUESTION_ID = 1;
+	private static final int LEGACY_QUESTION_ID_UPPER_BOUND = 49;
+
+	String userid = "sa";
+	String password = "";
 	public static int studentidtochange;
-	public static int NUMBEROFQUESTIONS = 5;
-	private Connection connection = null;
-	private ArrayList<Integer> completedQuestionsList = new ArrayList<Integer>();
-	private ArrayList<Integer> completedQuestionTypes = new ArrayList<Integer>();
+	public static final int NUMBEROFQUESTIONS = QuizSession.SESSION_LENGTH;
 
-	// Defining a list to store the information from the database.
-
-	private Connection getConnection() {// Creating a method to establish the connection
-		try {
-			if (dbserver == null) // start h2 db if it is not already started
-				dbserver = Server.createTcpServer().start();
-
-			if (connection == null) {// if the connection is not already established, the connection will get
-										// established with the following code.
-				try {
-					Class.forName(driver).newInstance();// Using the driver that is necessary to establish the
-														// connection to the DERBY database
-				} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {// catching any
-																										// exceptions
-																										// that could
-																										// arise, from
-																										// not
-																										// establishing
-																										// the
-																										// connection.
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				connection = DriverManager.getConnection(host, userid, password);// establishing the connection to the
-																					// host which is declared above.
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return connection;
-
-	}
+	private Server dbserver;
+	private Connection connection;
 
 	public quizDAO() {
 		try {
 			dbserver = Server.createTcpServer().start();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	public QuestionAndOptionsModel getRandomQuestionAndAnswers() throws OutOfQuestionsException {
-
-		int low = 1; // inclusive
-		int high = 49; // exclusive
-
-		if (completedQuestionsList.size() >= NUMBEROFQUESTIONS) {
-			throw new OutOfQuestionsException();
-
-		}
-
-		java.sql.Statement statement = null;
-		// defining statement, so the connection can be established
-		ResultSet rs = null;
-		// getting the information from the query and storing it in a resultset.
-		QuestionAndOptionsModel model = new QuestionAndOptionsModel();
-		int questionId = 0;
-		Random r = new Random();
-		int randomNumber = r.nextInt(high - low) + low;// Random number between 2 numbers.
-
-		// Making sure that the randomNumber that is generated is unique. This is done
-		// by checking if the randomNumber is in the list, and then adding that over and
-		// over.
-
-		while (completedQuestionsList.contains(randomNumber)) {
-			// System.out.println("looping " + randomNumber);
-			randomNumber = r.nextInt(high - low) + low;
-
-		}
-
-		String getQuestionSQL = "SELECT * FROM questions WHERE questionid = " + randomNumber + " ";
+	private Connection getConnection() {
 		try {
-			statement = getConnection().createStatement();
-			rs = statement.executeQuery(getQuestionSQL);
-			while (rs.next()) {
-				// looping through the resulset and storing important information
-
-				model.setQuestion(rs.getString(1));
-				questionId = rs.getInt(2);
-				model.setDisplayType(rs.getInt(3));
-				model.setRightAnswer(rs.getString(4));
-				// Storing all the useful information from the database such as the question,
-				// questionID, displayType, and right answer into the model object.
-
+			if (dbserver == null) {
+				dbserver = Server.createTcpServer().start();
 			}
 
-			completedQuestionsList.add(randomNumber);
-			completedQuestionTypes.add(model.getDisplayType());
-
-			// Getting the corresponding answer that matches with the specific questionID
-			// that was retrieved in the previous query
-			String getOptionsql = "SELECT  answers FROM answers WHERE questionid = " + questionId + "" + " ORDER BY ID";
-			statement = getConnection().createStatement();
-			rs = statement.executeQuery(getOptionsql);
-			while (rs.next()) {
-				// getting the food from the database, and looping through it and adding it to
-				// the list.
-				model.addOption(rs.getString(1));
-				// adding the new object back to the list
-
+			if (connection == null) {
+				Class.forName(driver);
+				connection = DriverManager.getConnection(host, userid, password);
 			}
-
+			return connection;
+		} catch (ClassNotFoundException | SQLException e) {
+			throw new IllegalStateException("Unable to connect to the quiz database", e);
 		}
+	}
 
-		catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+	@Override
+	public List<Question> findAllQuestions() {
+		Map<Integer, List<String>> optionsByQuestionId = loadAnswerOptions();
+		List<Question> questions = new ArrayList<>();
+		String sql = "SELECT question, questionid, displaytype, answer FROM questions "
+				+ "WHERE questionid >= " + LEGACY_FIRST_QUESTION_ID + " AND questionid < "
+				+ LEGACY_QUESTION_ID_UPPER_BOUND + " ORDER BY questionid";
 
-		try {
-			statement.close();
+		try (Statement statement = getConnection().createStatement(); ResultSet rows = statement.executeQuery(sql)) {
+			while (rows.next()) {
+				int questionId = rows.getInt("questionid");
+				questions.add(new Question(questionId, rows.getString("question"),
+						Question.DisplayType.fromLegacyValue(rows.getInt("displaytype")), rows.getString("answer"),
+						optionsByQuestionId.getOrDefault(questionId, List.of())));
+			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new IllegalStateException("Unable to load quiz questions", e);
 		}
-		//System.out.println(model.getQuestion() + "---" + model.getQuestionId());
-		return model;
-
+		return questions;
 	}
 
-	public static void main(String args[]) {
-
-		quizDAO dao = new quizDAO();
-		dao.getConnection();
-
-		// dao.insertId();
-
+	private Map<Integer, List<String>> loadAnswerOptions() {
+		Map<Integer, List<String>> optionsByQuestionId = new HashMap<>();
+		String sql = "SELECT answers, questionid FROM answers WHERE questionid >= " + LEGACY_FIRST_QUESTION_ID
+				+ " AND questionid < " + LEGACY_QUESTION_ID_UPPER_BOUND + " ORDER BY questionid, id";
+		try (Statement statement = getConnection().createStatement(); ResultSet rows = statement.executeQuery(sql)) {
+			while (rows.next()) {
+				optionsByQuestionId.computeIfAbsent(rows.getInt("questionid"), ignored -> new ArrayList<>())
+						.add(rows.getString("answers"));
+			}
+		} catch (SQLException e) {
+			throw new IllegalStateException("Unable to load quiz answer options", e);
+		}
+		return optionsByQuestionId;
 	}
 
+	static boolean isLegacyEligibleQuestionId(int questionId) {
+		return questionId >= LEGACY_FIRST_QUESTION_ID && questionId < LEGACY_QUESTION_ID_UPPER_BOUND;
+	}
+
+	public static void main(String[] args) {
+		new quizDAO().getConnection();
+	}
 }
