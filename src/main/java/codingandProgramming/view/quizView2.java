@@ -9,9 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.URL;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Random;
 
 import javax.swing.AbstractAction;
@@ -32,6 +30,7 @@ import javax.swing.JWindow;
 import javax.swing.SwingConstants;
 
 import codingandProgramming.model.QuestionAndOptionsModel;
+import codingandProgramming.model.QuestionRepositoryException;
 import codingandProgramming.model.QuizReport;
 import codingandProgramming.model.QuizResult;
 import codingandProgramming.model.QuizSession;
@@ -69,18 +68,14 @@ public class quizView2 {
 	public int score = 0;
 	public QuestionAndOptionsModel model = null;
 	private QuizSession quizSession;
-	public Map<Integer, String> providedAnswersMap = new HashMap<Integer, String>();
 	public static boolean didtheycompletethequestion = false;
 	public static JLabel fillIntheblankLabelOne = new JLabel("New label");
 	public static JLabel fillintheblanklabelTwo = new JLabel("New label");
 	public static JTextField fillIntheblankfield = new JTextField();;
-	public String[][] reportArr = new String[50][5];
-	public int currentQuestionIndex = 0;
-	String tableColumns[] = { "Question", "Right Answer", "Selected Answer", "Is Answer Correct" };
-	public double percentCorrect = score / 5;
 	public boolean isCorrect;
 	public boolean isAttempted;
 	public static String nameOfStudent = "";
+	private boolean reportDisplayed;
 	
 
 
@@ -101,9 +96,12 @@ public class quizView2 {
 					frame.dispose();
 
 					quizView2 window = new quizView2();
+					if (!window.startQuiz()) {
+						window.endFailedStartup();
+						return;
+					}
 					nameOfStudent = JOptionPane.showInputDialog("Please enter your name to begin quiz");
 					window.frmQuizApp.setTitle("Quiz App - " + nameOfStudent);
-					window.startQuiz();
 
 					window.frmQuizApp.setVisible(true);
 					window.initialize2dArray();
@@ -141,10 +139,27 @@ public class quizView2 {
 
 	}
 
-	private void startQuiz() {
-		quizSession = new QuizSession(dao, new Random());
-		model = new QuestionAndOptionsModel(quizSession.getCurrentQuestion());
-		displayProperWidgets(model);
+	private boolean startQuiz() {
+		QuizStartup startup = new QuizStartup(dao, new Random(), session -> {
+			quizSession = session;
+			reportDisplayed = false;
+			nextQuestionAction.setEnabled(true);
+			model = new QuestionAndOptionsModel(quizSession.getCurrentQuestion());
+			displayProperWidgets(model);
+		}, () -> {
+			JOptionPane.showMessageDialog(frmQuizApp, QuestionRepositoryException.USER_MESSAGE, "Quiz unavailable",
+					JOptionPane.ERROR_MESSAGE);
+		});
+		return startup.start();
+	}
+
+	private void endFailedStartup() {
+		frmQuizApp.dispose();
+		try {
+			dao.close();
+		} catch (RuntimeException ignored) {
+			// The unavailable dialog has already presented the only user-facing error.
+		}
 	}
 
 	private final Action actionOne = new btnOneAction();
@@ -221,7 +236,8 @@ public class quizView2 {
 		frmQuizApp.getContentPane().add(nextQuestionbtn);
 		comboBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				selectedAnswer = comboBox.getSelectedItem() + "";
+				Object selection = comboBox.getSelectedItem();
+				selectedAnswer = selection == null ? "" : selection.toString();
 			}
 		});
 
@@ -313,28 +329,29 @@ public class quizView2 {
 			putValue(SHORT_DESCRIPTION, "");
 		}
 
-		private void buildDataForReport(QuizResult result) {
-			providedAnswersMap.put(result.getQuestion().getId(), result.getSelectedAnswer());
-			reportArr[currentQuestionIndex][0] = result.getQuestionText();
-			reportArr[currentQuestionIndex][1] = result.getCorrectAnswer();
-			// Preserve the legacy JTable mapping; correcting its misplaced columns belongs
-			// to the later defect-correction stage. QuizReport retains all four values.
-			reportArr[currentQuestionIndex][2] = Boolean.toString(result.isCorrect());
-			currentQuestionIndex++;
-		}
-
 		public void actionPerformed(ActionEvent e) {
-			if (quizSession == null || quizSession.isComplete()) {
+			if (quizSession == null) {
+				return;
+			}
+			if (quizSession.isComplete()) {
+				nextQuestionAction.setEnabled(false);
 				return;
 			}
 
 			// if the fillInBlankFlag is true, then the selectedAnswer will be set to whatever was entered in the textField
 			if (fillInBlankFlag) {
 				selectedAnswer = fillIntheblankfield.getText();
-				fillInBlankFlag = false;
 			}
 
-			QuizResult result = quizSession.submitAnswer(selectedAnswer);
+			QuizResult result;
+			try {
+				result = quizSession.submitAnswer(selectedAnswer);
+			} catch (IllegalArgumentException validationError) {
+				JOptionPane.showMessageDialog(frmQuizApp, validationError.getMessage(), "Answer required",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			fillInBlankFlag = false;
 			isCorrect = result.isCorrect();
 			score = quizSession.getScore();
 
@@ -348,12 +365,15 @@ public class quizView2 {
 			}
 
 			selectedAnswer = "";
-			buildDataForReport(result);
 
 			if (quizSession.isComplete()) {
-				JOptionPane.showMessageDialog(null,
-						"Congratulations!, you have completed the quiz, press ok to view report");
-				reportView();
+				nextQuestionAction.setEnabled(false);
+				if (!reportDisplayed) {
+					reportDisplayed = true;
+					JOptionPane.showMessageDialog(null,
+							"Congratulations!, you have completed the quiz, press ok to view report");
+					reportView(quizSession.getReport());
+				}
 				return;
 			}
 
@@ -364,19 +384,9 @@ public class quizView2 {
 		 * Generates the report by using a 2 dimensional array, that populates the fields with information calculated based on results of quiz
 		 * 
 		 */
-		private void reportView() {
-			QuizReport report = quizSession.getReport();
-
-			currentQuestionIndex = currentQuestionIndex + 3;
-			reportArr[currentQuestionIndex++][0] = "Student: " + nameOfStudent;
-			reportArr[currentQuestionIndex++][0] = "   Questions attempted: " + report.getQuestionsAttempted();
-			reportArr[currentQuestionIndex = currentQuestionIndex++][0] = "   Answered correctly: "
-					+ report.getCorrectAnswerCount();
-
-			reportArr[currentQuestionIndex++][0] = "   Percentage correct: " + report.getPercentageCorrect();
-
+		private void reportView(QuizReport report) {
 			JFrame reportFrame = new JFrame();
-			JTable reportTable = new JTable(reportArr, tableColumns);
+			JTable reportTable = new JTable(new QuizReportTableModel(report, nameOfStudent));
 			reportFrame.setSize(600, 500);
 			reportFrame.setTitle("Quiz App - " + nameOfStudent);
 			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();

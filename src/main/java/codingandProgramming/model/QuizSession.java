@@ -17,6 +17,7 @@ public final class QuizSession {
 	private final List<Question> selectedQuestions;
 	private final List<QuizResult> results = new ArrayList<>();
 	private int score;
+	private QuizReport finalReport;
 
 	public QuizSession(QuestionRepository repository, Random random) {
 		Objects.requireNonNull(repository, "repository");
@@ -54,12 +55,19 @@ public final class QuizSession {
 
 	public QuizResult submitAnswer(String selectedAnswer) {
 		Question question = getCurrentQuestion();
-		String recordedAnswer = selectedAnswer == null ? "" : selectedAnswer;
+		if (selectedAnswer == null || selectedAnswer.isBlank()) {
+			throw new IllegalArgumentException("Please select or enter an answer before continuing.");
+		}
+
+		String recordedAnswer = selectedAnswer;
 		boolean correct = recordedAnswer.equalsIgnoreCase(question.getCorrectAnswer());
 		QuizResult result = new QuizResult(question, recordedAnswer, correct);
 		results.add(result);
 		if (correct) {
 			score++;
+		}
+		if (isComplete()) {
+			finalReport = new QuizReport(results, SESSION_LENGTH);
 		}
 		return result;
 	}
@@ -73,6 +81,6 @@ public final class QuizSession {
 	}
 
 	public QuizReport getReport() {
-		return new QuizReport(results, SESSION_LENGTH);
+		return finalReport == null ? new QuizReport(results, SESSION_LENGTH) : finalReport;
 	}
 }

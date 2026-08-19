@@ -2,6 +2,7 @@ package codingandProgramming.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +36,16 @@ class QuizSessionTest {
 		Set<Integer> repositoryIds = Set.of(101, 205, 309, 412, 518, 623, 731, 844);
 
 		assertTrue(repositoryIds.containsAll(idsOf(session)));
+	}
+
+	@Test
+	void databaseQuestionIdsFortyNineAndFiftyAreEligibleForSelection() {
+		QuestionRepository repository = () -> List.of(question(46), question(47), question(48), question(49),
+				question(50));
+
+		QuizSession session = new QuizSession(repository, new Random(31L));
+
+		assertEquals(Set.of(46, 47, 48, 49, 50), idsOf(session));
 	}
 
 	@Test
@@ -83,18 +94,32 @@ class QuizSessionTest {
 	}
 
 	@Test
-	void blankAnswerIsRecordedAsIncorrectToCharacterizeLegacyBehavior() {
+	void blankAnswerIsRejectedWithoutAdvancingTheSession() {
 		QuizSession session = sessionWithSeed(70L);
+		Question currentQuestion = session.getCurrentQuestion();
 
-		QuizResult result = session.submitAnswer("");
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> session.submitAnswer("   "));
 
-		assertEquals("", result.getSelectedAnswer());
-		assertFalse(result.isCorrect());
+		assertEquals("Please select or enter an answer before continuing.", exception.getMessage());
+		assertEquals(currentQuestion, session.getCurrentQuestion());
+		assertEquals(0, session.getReport().getQuestionsAttempted());
 		assertEquals(0, session.getScore());
 	}
 
 	@Test
-	void completingFiveQuestionsEndsTheSession() {
+	void nullAnswerIsRejectedWithoutAdvancingTheSession() {
+		QuizSession session = sessionWithSeed(71L);
+		Question currentQuestion = session.getCurrentQuestion();
+
+		assertThrows(IllegalArgumentException.class, () -> session.submitAnswer(null));
+
+		assertEquals(currentQuestion, session.getCurrentQuestion());
+		assertEquals(0, session.getReport().getQuestionsAttempted());
+	}
+
+	@Test
+	void fifthAnswerCreatesOneFinalReportAndFurtherSubmissionIsRejected() {
 		QuizSession session = sessionWithSeed(80L);
 
 		for (int questionNumber = 0; questionNumber < QuizSession.SESSION_LENGTH; questionNumber++) {
@@ -104,8 +129,10 @@ class QuizSessionTest {
 
 		assertTrue(session.isComplete());
 		assertEquals(5, session.getReport().getQuestionsAttempted());
+		assertSame(session.getReport(), session.getReport());
 		assertThrows(IllegalStateException.class, session::getCurrentQuestion);
 		assertThrows(IllegalStateException.class, () -> session.submitAnswer("another answer"));
+		assertEquals(5, session.getReport().getQuestionsAttempted());
 	}
 
 	private QuizSession sessionWithSeed(long seed) {

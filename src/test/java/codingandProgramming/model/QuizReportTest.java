@@ -9,6 +9,21 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class QuizReportTest {
+	@Test
+	void percentageIsCorrectForEveryPossibleFiveQuestionScore() {
+		for (int correctAnswers = 0; correctAnswers <= QuizSession.SESSION_LENGTH; correctAnswers++) {
+			QuizSession session = new QuizSession(
+					() -> List.of(question(1), question(2), question(3), question(4), question(5)), new Random(90L));
+
+			for (int answerNumber = 0; answerNumber < QuizSession.SESSION_LENGTH; answerNumber++) {
+				String answer = answerNumber < correctAnswers ? session.getCurrentQuestion().getCorrectAnswer() : "wrong";
+				session.submitAnswer(answer);
+			}
+
+			assertEquals(correctAnswers * 20, session.getReport().getPercentageCorrect(),
+					"percentage for score " + correctAnswers);
+		}
+	}
 
 	@Test
 	void reportRowsContainQuestionCorrectAnswerSelectedAnswerAndCorrectness() {
