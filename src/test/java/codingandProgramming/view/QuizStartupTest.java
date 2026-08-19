@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -13,10 +15,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import codingandProgramming.model.Question;
 import codingandProgramming.model.QuestionRepository;
 import codingandProgramming.model.QuizSession;
+import codingandProgramming.model.quizDAO;
 
 class QuizStartupTest {
 
@@ -76,6 +80,25 @@ class QuizStartupTest {
 		assertEquals(5, displayedSession.get().getSelectedQuestions().size());
 		assertEquals(1, displayCount.get());
 		assertEquals(0, errorCount.get());
+	}
+
+	@Test
+	void databaseInitializationFailureUsesTheSafeUnavailableStartup(@TempDir Path tempDirectory) throws Exception {
+		Path blockedParent = tempDirectory.resolve("not-a-directory");
+		Files.writeString(blockedParent, "blocks database directory creation");
+		AtomicReference<QuizSession> displayedSession = new AtomicReference<>();
+		AtomicInteger errorCount = new AtomicInteger();
+
+		try (quizDAO dao = new quizDAO(blockedParent.resolve("quizdb"))) {
+			QuizStartup startup = new QuizStartup(dao, new Random(4L), displayedSession::set,
+					errorCount::incrementAndGet);
+
+			assertFalse(startup.start());
+			assertFalse(startup.start());
+		}
+
+		assertNull(displayedSession.get());
+		assertEquals(1, errorCount.get());
 	}
 
 	private void assertStartupFails(QuestionRepository repository) {

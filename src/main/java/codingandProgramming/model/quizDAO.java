@@ -1,9 +1,8 @@
 /**
- * Loads quiz content from the preserved H2 database for the Swing application.
+ * Loads quiz content from the newly initialized H2 database for the Swing application.
  */
 package codingandProgramming.model;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,8 +19,8 @@ import org.h2.tools.Server;
 
 public class quizDAO implements QuestionRepository, AutoCloseable {
 
-	private static final String DEFAULT_HOST = "jdbc:h2:file:./quizdb";
-	private static final Path DEFAULT_DATABASE_FILE = Path.of("quizdb.mv.db");
+	private static final String DEFAULT_HOST = "jdbc:h2:file:./data/quizdb";
+	private static final Path DEFAULT_DATABASE_PATH = Path.of("data", "quizdb");
 	public static final String driver = "org.h2.Driver";
 
 	String userid = "sa";
@@ -30,29 +29,37 @@ public class quizDAO implements QuestionRepository, AutoCloseable {
 	public static final int NUMBEROFQUESTIONS = QuizSession.SESSION_LENGTH;
 
 	private final String host;
-	private final boolean requireExistingDatabase;
+	private final DatabaseInitializer initializer;
 	private final boolean startTcpServer;
 	private Server dbserver;
 	private Connection connection;
 
 	public quizDAO() {
-		this(DEFAULT_HOST, true, true);
+		this(DEFAULT_HOST, new DatabaseInitializer(DEFAULT_DATABASE_PATH, DEFAULT_HOST), true);
 	}
 
 	quizDAO(String host) {
-		this(host, false, false);
+		this(host, null, false);
 	}
 
-	private quizDAO(String host, boolean requireExistingDatabase, boolean startTcpServer) {
+	/**
+	 * Creates a repository backed by an isolated database path. Intended for tests and
+	 * other explicitly configured environments.
+	 */
+	public quizDAO(Path databasePath) {
+		this(databaseUrl(databasePath), new DatabaseInitializer(databasePath, databaseUrl(databasePath)), false);
+	}
+
+	private quizDAO(String host, DatabaseInitializer initializer, boolean startTcpServer) {
 		this.host = Objects.requireNonNull(host, "host");
-		this.requireExistingDatabase = requireExistingDatabase;
+		this.initializer = initializer;
 		this.startTcpServer = startTcpServer;
 	}
 
 	private Connection getConnection() {
 		try {
-			if (requireExistingDatabase && !Files.isRegularFile(DEFAULT_DATABASE_FILE)) {
-				throw new QuestionRepositoryException();
+			if (initializer != null) {
+				initializer.initialize();
 			}
 			if (startTcpServer && dbserver == null) {
 				dbserver = Server.createTcpServer().start();
@@ -66,6 +73,12 @@ public class quizDAO implements QuestionRepository, AutoCloseable {
 		} catch (ClassNotFoundException | SQLException e) {
 			throw new QuestionRepositoryException(e);
 		}
+	}
+
+	private static String databaseUrl(Path databasePath) {
+		String normalizedPath = Objects.requireNonNull(databasePath, "databasePath").toAbsolutePath().normalize()
+				.toString().replace('\\', '/');
+		return "jdbc:h2:file:" + normalizedPath;
 	}
 
 	@Override
