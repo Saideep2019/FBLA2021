@@ -1,14 +1,18 @@
 package codingandProgramming.view;
 
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.Objects;
 import java.util.Random;
 import java.util.function.Consumer;
+
+import javax.swing.SwingWorker;
 
 import codingandProgramming.model.QuestionRepository;
 import codingandProgramming.model.QuizSession;
 
 /**
- * Gates normal quiz startup on successful session initialization.
+ * Loads a quiz session in the background and reports its result on the EDT.
  */
 final class QuizStartup {
 
@@ -18,6 +22,7 @@ final class QuizStartup {
 	private final Runnable presentUnavailableError;
 	private boolean attempted;
 	private boolean successful;
+	private SwingWorker<QuizSession, Void> worker;
 
 	QuizStartup(QuestionRepository repository, Random random, Consumer<QuizSession> initializeQuizDisplay,
 			Runnable presentUnavailableError) {
@@ -27,19 +32,46 @@ final class QuizStartup {
 		this.presentUnavailableError = Objects.requireNonNull(presentUnavailableError, "presentUnavailableError");
 	}
 
-	boolean start() {
+	void start() {
+		SwingThreading.requireEventDispatchThread();
 		if (attempted) {
-			return successful;
+			return;
 		}
 		attempted = true;
 
-		try {
-			QuizSession session = new QuizSession(repository, random);
-			initializeQuizDisplay.accept(session);
-			successful = true;
-		} catch (RuntimeException initializationFailure) {
-			presentUnavailableError.run();
-		}
+		worker = new SwingWorker<>() {
+			@Override
+			protected QuizSession doInBackground() {
+				return new QuizSession(repository, random);
+			}
+
+			@Override
+			protected void done() {
+				SwingThreading.requireEventDispatchThread();
+				try {
+					QuizSession session = get();
+					initializeQuizDisplay.accept(session);
+					successful = true;
+				} catch (CancellationException ignored) {
+					// Application shutdown deliberately suppresses startup UI.
+				} catch (InterruptedException interrupted) {
+					Thread.currentThread().interrupt();
+					presentUnavailableError.run();
+				} catch (ExecutionException | RuntimeException initializationFailure) {
+					presentUnavailableError.run();
+				}
+			}
+		};
+		worker.execute();
+	}
+
+	boolean wasSuccessful() {
 		return successful;
+	}
+
+	void cancel() {
+		if (worker != null) {
+			worker.cancel(true);
+		}
 	}
 }
