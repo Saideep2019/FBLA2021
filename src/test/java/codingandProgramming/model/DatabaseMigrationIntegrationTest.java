@@ -2,10 +2,13 @@ package codingandProgramming.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,15 +25,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.h2.tools.RunScript;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class DatabaseMigrationIntegrationTest {
 
-	private static final String QUESTIONS_CHECKSUM =
+	private static final String LEGACY_QUESTIONS_CHECKSUM =
 			"216B45179E5AD80DFB6A3EF95DBA84C4D2B755A3E0E9BB2859976F18B167170B";
-	private static final String ANSWERS_CHECKSUM =
+	private static final String LEGACY_ANSWERS_CHECKSUM =
 			"02A648A1B6F840A73FC08CC8B0BBDAAB6A314CC1783E1873A483DE23B01664CB";
+	private static final String CORRECTED_QUESTIONS_CHECKSUM =
+			"69728FED47DFC100F805D9A48C0017514A85ADCB8DB0201F9B4EB7E08FB053D2";
+	private static final String CORRECTED_ANSWERS_CHECKSUM =
+			"0A9BE30CA16B40D53D533D8292F194CA36DC387B7777F9E5E3E8EB5DF6C94334";
 
 	@Test
 	void versionedContentMigrationUsesTheVerifiedLegacyInsertStatements() throws Exception {
@@ -41,60 +49,119 @@ class DatabaseMigrationIntegrationTest {
 	}
 
 	@Test
-	void freshDatabaseHasTheVerifiedH2Schema(@TempDir Path tempDirectory) throws Exception {
-		Path databasePath = isolatedDatabasePath(tempDirectory, "schema");
-		initialize(databasePath);
-
+	void preservedV1AndV2ContentRetainsTheStageOneHistoricalChecksums(@TempDir Path tempDirectory) throws Exception {
+		Path databasePath = isolatedDatabasePath(tempDirectory, "legacy-checksums");
 		try (Connection connection = connect(databasePath)) {
-			assertEquals(List.of("ANSWERS", "QUESTIONS"), values(connection,
-					"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
-							+ "WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME"));
-			assertEquals(expectedColumns(), actualColumns(connection));
-		}
-	}
+			runResource(connection, "/db/migration/V1__quiz_schema.sql");
+			runResource(connection, "/db/migration/V2__quiz_content.sql");
 
-	@Test
-	void freshDatabaseContentMatchesAllVerifiedStageOneFacts(@TempDir Path tempDirectory) throws Exception {
-		Path databasePath = isolatedDatabasePath(tempDirectory, "content");
-		initialize(databasePath);
-
-		try (Connection connection = connect(databasePath)) {
 			assertEquals(50, singleInt(connection, "SELECT COUNT(*) FROM QUESTIONS"));
 			assertEquals(126, singleInt(connection, "SELECT COUNT(*) FROM ANSWERS"));
-			assertEquals(42, singleInt(connection, "SELECT COUNT(DISTINCT QUESTIONID) FROM ANSWERS"));
-			assertEquals(0, singleInt(connection, "SELECT COUNT(*) FROM ANSWERS A LEFT JOIN QUESTIONS Q "
-					+ "ON A.QUESTIONID = Q.QUESTIONID WHERE Q.QUESTIONID IS NULL"));
-			assertEquals(1, singleInt(connection, "SELECT MIN(QUESTIONID) FROM QUESTIONS"));
-			assertEquals(50, singleInt(connection, "SELECT MAX(QUESTIONID) FROM QUESTIONS"));
-			assertEquals(50, singleInt(connection, "SELECT COUNT(DISTINCT QUESTIONID) FROM QUESTIONS"));
-			assertEquals(expectedQuestionIds(), integers(connection,
-					"SELECT QUESTIONID FROM QUESTIONS ORDER BY QUESTIONID"));
-			assertEquals(Map.of(1, 15, 2, 10, 3, 16, 4, 9), displayTypeCounts(connection));
-
-			assertEquals("The currency of Poland is the Polish złoty", singleString(connection,
-					"SELECT QUESTION FROM QUESTIONS WHERE QUESTIONID = 39"));
-			assertEquals(List.of("Atlantic", "Pacific", "Indian", "Arctic"), answerOptions(connection, 15));
-			assertEquals(List.of("An", "measures intelligence"), answerOptions(connection, 5));
-			assertEquals(List.of("Do not use low-fat milk", "it will the taste (affect vs effect)"),
-					answerOptions(connection, 11));
-			assertEquals(List.of("The", "seperates both hemispheres"), answerOptions(connection, 28));
-
-			assertEquals(QUESTIONS_CHECKSUM, checksum(connection,
+			assertEquals(LEGACY_QUESTIONS_CHECKSUM, checksum(connection,
 					"SELECT QUESTIONID, QUESTION, DISPLAYTYPE, ANSWER FROM QUESTIONS ORDER BY QUESTIONID", 4));
-			assertEquals(ANSWERS_CHECKSUM, checksum(connection,
+			assertEquals(LEGACY_ANSWERS_CHECKSUM, checksum(connection,
 					"SELECT QUESTIONID, ID, ANSWERS FROM ANSWERS ORDER BY QUESTIONID, ID, ANSWERS", 3));
 		}
 	}
 
 	@Test
-	void secondInitializationDoesNotDuplicateSchemaOrContent(@TempDir Path tempDirectory) throws Exception {
+	void freshDatabaseHasQuizSchemaAndMigrationHistory(@TempDir Path tempDirectory) throws Exception {
+		Path databasePath = isolatedDatabasePath(tempDirectory, "schema");
+		initialize(databasePath);
+
+		try (Connection connection = connect(databasePath)) {
+			assertEquals(List.of("ANSWERS", "QUESTIONS", "SCHEMA_MIGRATIONS"), values(connection,
+					"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
+							+ "WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME"));
+			assertEquals(expectedColumns(), actualColumns(connection));
+			assertEquals(List.of("1", "2", "3"), values(connection,
+					"SELECT VERSION FROM SCHEMA_MIGRATIONS ORDER BY CAST(VERSION AS INTEGER)"));
+			assertEquals(3, singleInt(connection,
+					"SELECT COUNT(*) FROM SCHEMA_MIGRATIONS WHERE APPLIED_AT IS NOT NULL"));
+		}
+	}
+
+	@Test
+	void freshDatabaseContentMatchesTheCorrectedRuntimeChecksums(@TempDir Path tempDirectory) throws Exception {
+		Path databasePath = isolatedDatabasePath(tempDirectory, "corrected-checksums");
+		initialize(databasePath);
+
+		try (Connection connection = connect(databasePath)) {
+			assertEquals(CORRECTED_QUESTIONS_CHECKSUM, checksum(connection,
+					"SELECT QUESTIONID, QUESTION, DISPLAYTYPE, ANSWER FROM QUESTIONS ORDER BY QUESTIONID", 4));
+			assertEquals(CORRECTED_ANSWERS_CHECKSUM, checksum(connection,
+					"SELECT QUESTIONID, ID, ANSWERS FROM ANSWERS ORDER BY QUESTIONID, ID, ANSWERS", 3));
+		}
+	}
+
+	@Test
+	void existingVerifiedV2DatabaseIsBaselinedAndReceivesV3Once(@TempDir Path tempDirectory) throws Exception {
+		Path databasePath = isolatedDatabasePath(tempDirectory, "existing-v2");
+		createV2Database(databasePath);
+
+		new DatabaseInitializer(databasePath, databaseUrl(databasePath)).initialize();
+		new DatabaseInitializer(databasePath, databaseUrl(databasePath)).initialize();
+
+		try (Connection connection = connect(databasePath)) {
+			assertEquals(List.of("1", "2", "3"), values(connection,
+					"SELECT VERSION FROM SCHEMA_MIGRATIONS ORDER BY CAST(VERSION AS INTEGER)"));
+			assertEquals(1, singleInt(connection,
+					"SELECT COUNT(*) FROM SCHEMA_MIGRATIONS WHERE VERSION = '3'"));
+			assertEquals("As of 2021, which country was the world's most populous?", singleString(connection,
+					"SELECT QUESTION FROM QUESTIONS WHERE QUESTIONID = 2"));
+			assertEquals(150, singleInt(connection, "SELECT COUNT(*) FROM ANSWERS"));
+		}
+	}
+
+	@Test
+	void unverifiedExistingDatabaseWithoutHistoryIsRejected(@TempDir Path tempDirectory) throws Exception {
+		Path databasePath = isolatedDatabasePath(tempDirectory, "invalid-baseline");
+		createV2Database(databasePath);
+		try (Connection connection = connect(databasePath); Statement statement = connection.createStatement()) {
+			statement.executeUpdate("UPDATE QUESTIONS SET ANSWER = 'India' WHERE QUESTIONID = 2");
+		}
+
+		assertThrows(QuestionRepositoryException.class,
+				() -> new DatabaseInitializer(databasePath, databaseUrl(databasePath)).initialize());
+	}
+
+	@Test
+	void failedV3RollsBackAndIsNotRecordedAsSuccessful(@TempDir Path tempDirectory) throws Exception {
+		Path databasePath = isolatedDatabasePath(tempDirectory, "failed-v3");
+		createV2Database(databasePath);
+		try (Connection connection = connect(databasePath); Statement statement = connection.createStatement()) {
+			statement.execute("CREATE TABLE SCHEMA_MIGRATIONS (VERSION VARCHAR(20) PRIMARY KEY, "
+					+ "DESCRIPTION VARCHAR(255) NOT NULL, APPLIED_AT TIMESTAMP WITH TIME ZONE NOT NULL)");
+			statement.execute("INSERT INTO SCHEMA_MIGRATIONS VALUES "
+					+ "('1', 'Create quiz schema', CURRENT_TIMESTAMP), "
+					+ "('2', 'Import verified legacy quiz content', CURRENT_TIMESTAMP)");
+			statement.execute("ALTER TABLE QUESTIONS ADD CONSTRAINT BLOCK_Q2_CORRECTION "
+					+ "CHECK (QUESTIONID <> 2 OR QUESTION = 'What country has the largest population?')");
+		}
+
+		assertThrows(QuestionRepositoryException.class,
+				() -> new DatabaseInitializer(databasePath, databaseUrl(databasePath)).initialize());
+
+		try (Connection connection = connect(databasePath)) {
+			assertEquals(List.of("1", "2"), values(connection,
+					"SELECT VERSION FROM SCHEMA_MIGRATIONS ORDER BY CAST(VERSION AS INTEGER)"));
+			assertEquals("Which is the largest state in USA?", singleString(connection,
+					"SELECT QUESTION FROM QUESTIONS WHERE QUESTIONID = 1"));
+			assertEquals("What country has the largest population?", singleString(connection,
+					"SELECT QUESTION FROM QUESTIONS WHERE QUESTIONID = 2"));
+		}
+	}
+
+	@Test
+	void repeatedInitializationDoesNotDuplicateSchemaOrContent(@TempDir Path tempDirectory) throws Exception {
 		Path databasePath = isolatedDatabasePath(tempDirectory, "repeat");
 		initialize(databasePath);
 		initialize(databasePath);
 
 		try (Connection connection = connect(databasePath)) {
 			assertEquals(50, singleInt(connection, "SELECT COUNT(*) FROM QUESTIONS"));
-			assertEquals(126, singleInt(connection, "SELECT COUNT(*) FROM ANSWERS"));
+			assertEquals(150, singleInt(connection, "SELECT COUNT(*) FROM ANSWERS"));
+			assertEquals(3, singleInt(connection, "SELECT COUNT(*) FROM SCHEMA_MIGRATIONS"));
 		}
 	}
 
@@ -108,7 +175,7 @@ class DatabaseMigrationIntegrationTest {
 	}
 
 	@Test
-	void daoLoadsAllFiftyQuestionsFromTheMigratedDatabase(@TempDir Path tempDirectory) {
+	void daoLoadsAllCorrectedQuestions(@TempDir Path tempDirectory) {
 		Path databasePath = isolatedDatabasePath(tempDirectory, "dao");
 
 		try (quizDAO dao = new quizDAO(databasePath)) {
@@ -116,11 +183,17 @@ class DatabaseMigrationIntegrationTest {
 
 			assertEquals(50, questions.size());
 			assertEquals(expectedQuestionIds(), questions.stream().map(Question::getId).toList());
+			Question question2 = questionWithId(questions, 2);
+			assertEquals("As of 2021, which country was the world's most populous?", question2.getText());
+			Question question31 = questionWithId(questions, 31);
+			assertEquals("Cambridge", question31.getCorrectAnswer());
+			assertEquals(List.of("Boston", "Cambridge", "New Haven", "New York City"),
+					question31.getAnswerOptions());
 		}
 	}
 
 	@Test
-	void fiveQuestionQuizCanBeCompletedFromTheMigratedDatabase(@TempDir Path tempDirectory) {
+	void fiveQuestionQuizCanBeCompletedFromTheCorrectedDatabase(@TempDir Path tempDirectory) {
 		Path databasePath = isolatedDatabasePath(tempDirectory, "session");
 
 		try (quizDAO dao = new quizDAO(databasePath)) {
@@ -138,6 +211,22 @@ class DatabaseMigrationIntegrationTest {
 	private void initialize(Path databasePath) {
 		try (quizDAO dao = new quizDAO(databasePath)) {
 			assertEquals(50, dao.findAllQuestions().size());
+		}
+	}
+
+	private void createV2Database(Path databasePath) throws Exception {
+		try (Connection connection = connect(databasePath)) {
+			runResource(connection, "/db/migration/V1__quiz_schema.sql");
+			runResource(connection, "/db/migration/V2__quiz_content.sql");
+		}
+	}
+
+	private void runResource(Connection connection, String resourceName) throws Exception {
+		try (InputStream input = DatabaseMigrationIntegrationTest.class.getResourceAsStream(resourceName)) {
+			assertNotNull(input, "Missing test migration resource: " + resourceName);
+			try (Reader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+				RunScript.execute(connection, reader);
+			}
 		}
 	}
 
@@ -165,6 +254,9 @@ class DatabaseMigrationIntegrationTest {
 		columns.put("QUESTIONS.QUESTIONID", new ColumnDefinition("INTEGER", "YES", null));
 		columns.put("QUESTIONS.DISPLAYTYPE", new ColumnDefinition("INTEGER", "YES", null));
 		columns.put("QUESTIONS.ANSWER", new ColumnDefinition("CHARACTER VARYING", "NO", 255L));
+		columns.put("SCHEMA_MIGRATIONS.VERSION", new ColumnDefinition("CHARACTER VARYING", "NO", 20L));
+		columns.put("SCHEMA_MIGRATIONS.DESCRIPTION", new ColumnDefinition("CHARACTER VARYING", "NO", 255L));
+		columns.put("SCHEMA_MIGRATIONS.APPLIED_AT", new ColumnDefinition("TIMESTAMP WITH TIME ZONE", "NO", null));
 		return columns;
 	}
 
@@ -185,29 +277,16 @@ class DatabaseMigrationIntegrationTest {
 		return columns;
 	}
 
-	private Map<Integer, Integer> displayTypeCounts(Connection connection) throws SQLException {
-		Map<Integer, Integer> counts = new LinkedHashMap<>();
-		try (Statement statement = connection.createStatement();
-				ResultSet rows = statement.executeQuery(
-						"SELECT DISPLAYTYPE, COUNT(*) AS ROW_COUNT FROM QUESTIONS GROUP BY DISPLAYTYPE ORDER BY DISPLAYTYPE")) {
-			while (rows.next()) {
-				counts.put(rows.getInt("DISPLAYTYPE"), rows.getInt("ROW_COUNT"));
-			}
-		}
-		return counts;
-	}
-
-	private List<String> answerOptions(Connection connection, int questionId) throws SQLException {
-		return values(connection,
-				"SELECT ANSWERS FROM ANSWERS WHERE QUESTIONID = " + questionId + " ORDER BY ID, ANSWERS");
-	}
-
 	private List<Integer> expectedQuestionIds() {
 		List<Integer> ids = new ArrayList<>();
 		for (int id = 1; id <= 50; id++) {
 			ids.add(id);
 		}
 		return ids;
+	}
+
+	private Question questionWithId(List<Question> questions, int id) {
+		return questions.stream().filter(question -> question.getId() == id).findFirst().orElseThrow();
 	}
 
 	private int singleInt(Connection connection, String sql) throws SQLException {
@@ -222,16 +301,6 @@ class DatabaseMigrationIntegrationTest {
 			row.next();
 			return row.getString(1);
 		}
-	}
-
-	private List<Integer> integers(Connection connection, String sql) throws SQLException {
-		List<Integer> values = new ArrayList<>();
-		try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery(sql)) {
-			while (rows.next()) {
-				values.add(rows.getInt(1));
-			}
-		}
-		return values;
 	}
 
 	private List<String> values(Connection connection, String sql) throws SQLException {
