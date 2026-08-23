@@ -1,2 +1,25 @@
-target/
-data/
+/target/
+/data/
+/bin/
+
+*.class
+*.trace.db
+*.lock.db
+*.db.lock
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Visual Studio Code workspace settings
+.vscode/
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

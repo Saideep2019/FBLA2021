@@ -1,0 +1,124 @@
+name: Maven CI
+
+on:
+  push:
+    branches:
+      - master
+      - modernization
+  pull_request:
+    branches:
+      - master
+      - modernization
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Reject prohibited tracked artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          prohibited="$(git ls-files | grep -E '(^|/)(bin|target|data)(/|$)|(^|/)\.settings(/|$)|(^|/)(\.classpath|\.project)$|\.class$|\.trace\.db$|\.db\.trace$|\.lock\.db$|\.db\.lock$|(^|/)vts2\.jar$' || true)"
+          if [[ -n "$prohibited" ]]; then
+            echo "Prohibited tracked artifacts found:"
+            printf '%s\n' "$prohibited"
+            exit 1
+          fi
+
+      - name: Set up Eclipse Temurin Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Make Maven Wrapper executable
+        run: chmod +x mvnw
+
+      - name: Build and run tests
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify -Djava.awt.headless=true
+
+      - name: Verify runnable JAR contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_file=target/quiz-app.jar
+          test -f "$jar_file"
+          jar tf "$jar_file" > target/jar-contents.txt
+
+          required_entries=(
+            codingandProgramming/view/QuizApplication.class
+            org/h2/Driver.class
+            db/migration/V1__quiz_schema.sql
+            db/migration/V2__quiz_content.sql
+            db/migration/V3__quiz_content_corrections.sql
+          )
+          for entry in "${required_entries[@]}"; do
+            grep -Fqx "$entry" target/jar-contents.txt || {
+              echo "Missing required JAR entry: $entry"
+              exit 1
+            }
+          done
+
+          unzip -p "$jar_file" META-INF/MANIFEST.MF \
+            | tr -d '\r' \
+            | grep -Fqx 'Main-Class: codingandProgramming.view.QuizApplication'
+
+          image_count=0
+          while IFS= read -r -d '' image; do
+            image_count=$((image_count + 1))
+            entry="${image#src/main/resources/}"
+            grep -Fqx "$entry" target/jar-contents.txt || {
+              echo "Missing image resource from JAR: $entry"
+              exit 1
+            }
+          done < <(find src/main/resources -type f \
+            \( -iname '*.gif' -o -iname '*.jpg' -o -iname '*.jpeg' -o \
+               -iname '*.jfif' -o -iname '*.png' \) -print0)
+          test "$image_count" -gt 0
+
+          if grep -Eiq '(^|/)(data|runtime-data)(/|$)|\.(mv|trace|lock)\.db$|\.db\.(trace|lock)$' \
+              target/jar-contents.txt; then
+            echo 'A database, trace, lock, or runtime-data file was packaged.'
+            exit 1
+          fi
+
+      - name: Verify protected database hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check --strict <<'CHECKSUMS'
+          9051E8D48F6B3344F7BB866E70A90E980BFBC04C807E560997421CD50C6C2112  quizdb.mv.db
+          9051E8D48F6B3344F7BB866E70A90E980BFBC04C807E560997421CD50C6C2112  database/backup/quizdb-original.mv.db
+          CHECKSUMS
+
+      - name: Upload runnable JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiz-app-${{ github.sha }}
+          path: target/quiz-app.jar
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Surefire reports
+        if: always() && hashFiles('target/surefire-reports/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ github.sha }}
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
