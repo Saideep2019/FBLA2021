@@ -1,1 +1,0 @@
-java -jar .\vts2.jar
