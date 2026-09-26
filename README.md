@@ -8,6 +8,27 @@ The FBLA Quiz Application is a Java desktop quiz project modernized from its ori
 
 The modernization keeps the original Swing desktop experience and quiz content history while introducing Java 17, a reproducible Maven build, testable domain and UI boundaries, H2 2.x database migrations, automated tests, and GitHub Actions continuous integration.
 
+## Welcome screen
+
+![FBLA Quiz Application welcome screen](docs/welcome-screen.png)
+
+The opening screen introduces the five-question quiz with a coordinated loading view,
+an optional name field, and a keyboard-accessible **Start quiz** button. Enter a name
+for the results report, or leave it blank to begin without one. Press Enter or select
+**Start quiz** to continue.
+
+## Questions and results
+
+The question screen shares the welcome screen's navy and teal palette, with a
+progress indicator, a live correct-answer count, and clearly selected answer controls.
+The final report presents accuracy and totals above a scrollable answer review.
+
+![Question screen](docs/question-screen.png)
+
+![Sample results report](docs/report-screen.png)
+
+These previews are rendered from the actual Swing components using sample inputs.
+
 ## Main features
 
 - Selects five distinct questions at random for each quiz session.
@@ -63,8 +84,8 @@ The application separates content access, quiz rules, and Swing presentation so 
 - `QuizController` translates submit actions into `QuizSession` operations and updates the `QuizView`.
 - `QuizApplicationUi`, `QuizView`, and `QuizWindow` define small UI boundaries used by the coordinator and controller.
 - `SwingQuizApplicationUi` supplies the loading window, name prompt, failure dialog, and concrete quiz window.
-- `QuizFrame` hosts the question, score, and submit controls. `QuestionCardPanel` switches among the four specialized question panels with `CardLayout`.
-- `QuizReportFrame` and `QuizReportTableModel` render the final read-only results table.
+- `QuizFrame` hosts `QuizQuestionScreen`, which presents the question, progress, score, and submit controls. `QuestionCardPanel` switches among the four specialized question panels with `CardLayout`.
+- `QuizReportFrame` and `QuizReportPanel` render read-only summary cards and a scrollable answer review. `QuizReportTableModel` retains the legacy tabular representation.
 
 ### `DatabaseInitializer`
 
